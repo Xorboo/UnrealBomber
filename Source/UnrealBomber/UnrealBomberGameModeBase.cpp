@@ -22,6 +22,13 @@ void AUnrealBomberGameModeBase::BeginPlay()
 	GenerateMap();
 }
 
+FVector AUnrealBomberGameModeBase::RoundPositionToGrid(FVector position)
+{
+	FVector r = position / 100.0;
+	r = FVector(FMath::Round(r.X), FMath::Round(r.Y), FMath::Round(r.Z));
+	return r * 100.0;
+}
+
 
 void AUnrealBomberGameModeBase::GenerateMap()
 {

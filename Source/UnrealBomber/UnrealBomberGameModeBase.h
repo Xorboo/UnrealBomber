@@ -22,6 +22,9 @@ public:
 
 	virtual void BeginPlay() override;
 
+	UFUNCTION(BlueprintCallable)
+	FVector RoundPositionToGrid(FVector position);
+
 	
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Generation")
