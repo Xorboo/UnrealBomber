@@ -68,19 +68,24 @@ void AUnrealBomberGameModeBase::BombAdded(ABombBase* Bomb)
 
 void AUnrealBomberGameModeBase::PickupAdded(APickupBase* Pickup)
 {
-	int x = 0, y = 0;
-	PositionToCoordinate(Pickup->GetActorLocation(), x, y);
-
-	if (IsFreeTileCoords(x, y))
+	if (Pickup)
 	{
-		UE_LOG(LogTemp, Display, TEXT("Pickup added on %d, %d."), x, y);
-		Map[y][x] = Pickup;
+		int x = 0, y = 0;
+		PositionToCoordinate(Pickup->GetActorLocation(), x, y);
+
+		if (IsFreeTileCoords(x, y))
+		{
+			UE_LOG(LogTemp, Display, TEXT("Pickup added on %d, %d."), x, y);
+			Map[y][x] = Pickup;
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("Pickup spawned on already taken coordinates [%d, %d], killing it"), x, y);
+			Pickup->Destroy();
+		}
 	}
 	else
-	{
-		UE_LOG(LogTemp, Error, TEXT("Pickup spawned on already taken coordinates [%d, %d], killing it"), x, y);
-		Pickup->Destroy();
-	}
+		UE_LOG(LogTemp, Error, TEXT("Empty pickup spawned"));
 }
 
 
