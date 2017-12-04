@@ -2,6 +2,7 @@
 
 #include "UnrealBomberGameModeBase.h"
 #include "Engine/World.h"
+#include "Kismet/GameplayStatics.h"
 #include "WallBase.h"
 #include "MapObjectBase.h"
 #include "BombBase.h"
@@ -20,6 +21,8 @@ AUnrealBomberGameModeBase::AUnrealBomberGameModeBase()
 {
 	MapSize = 15;
 	WallSpawnChance = 40.0;
+	RestartPause = 3.0;
+
 	Map = nullptr;
 }
 
@@ -32,7 +35,10 @@ void AUnrealBomberGameModeBase::BeginPlay()
 {
 	Super::BeginPlay();
 
-	GenerateMap();
+	// Store all players
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), APlayerPawnBase::StaticClass(), Players);
+	// Generate level
+	LaunchGame();
 }
 
 FVector AUnrealBomberGameModeBase::RoundPositionToGrid(FVector Position)
@@ -90,7 +96,7 @@ void AUnrealBomberGameModeBase::PickupCollected(UObject* WorldContextObject)
 		if (Map[y][x] == pickup)
 		{
 			Map[y][x] = nullptr;
-			pickup->Destroy();
+			pickup->SetLifeSpan(3);
 		}
 		else
 			UE_LOG(LogTemp, Error, TEXT("There is another object on pickup position"));
@@ -189,8 +195,44 @@ void AUnrealBomberGameModeBase::ChainExplosions(BombExplosion Explosion)
 		obj->Destroy();
 	}
 
-	// Spawn explosion particles
 	auto world = GetWorld();
+
+	// Get all players with centered positions
+	TMap<FVector, AActor*> PlayerPositions;
+	for (auto iter(Players.CreateIterator()); iter; iter++)
+	{
+		auto player = *iter;
+		int x, y;
+		PositionToCoordinate(player->GetTargetLocation(), x, y);
+		FVector centeredPosition = FVector(x, y, 0);
+		PlayerPositions.Add(centeredPosition, player);
+	}
+
+	// Check if any player is killed
+	bool bPlayerWasKilled = false;
+	for (auto iter(explodedPositions.CreateIterator()); iter; iter++)
+	{
+		auto position = (*iter);
+		auto playerRef = PlayerPositions.Find(position);
+		if (playerRef)
+		{
+			auto player = *playerRef;
+			bPlayerWasKilled = true;
+			UE_LOG(LogTemp, Warning, TEXT("Player '%s' is dead - not implemented, sorry"), *GetNameSafe(player));
+
+			FOutputDeviceNull ar;
+			player->CallFunctionByNameWithArguments(TEXT("OnPlayerDead"), ar, nullptr, true);
+		}
+	}
+	
+	// Restart the game if so
+	if (bPlayerWasKilled)
+	{
+		FTimerHandle unusedHandle;
+		GetWorldTimerManager().SetTimer(unusedHandle, this, &AUnrealBomberGameModeBase::RestartGame, RestartPause, false);
+	}
+
+	// Spawn explosion particles
 	for (auto iter(explodedPositions.CreateIterator()); iter; iter++)
 	{
 		auto position = (*iter) * 100.0;
@@ -238,6 +280,19 @@ bool AUnrealBomberGameModeBase::CheckExplosion(int x, int y, TArray<AMapObjectBa
 	return stopBlast;
 }
 
+
+void AUnrealBomberGameModeBase::LaunchGame()
+{
+	GenerateMap();
+
+	for (auto iter(Players.CreateIterator()); iter; iter++)
+	{
+		auto player = *iter;
+
+		FOutputDeviceNull ar;
+		player->CallFunctionByNameWithArguments(TEXT("OnNeMatchStarted"), ar, nullptr, true);
+	}
+}
 
 void AUnrealBomberGameModeBase::GenerateMap()
 {
@@ -290,27 +345,29 @@ void AUnrealBomberGameModeBase::GenerateMap()
 
 void AUnrealBomberGameModeBase::DestroyMap()
 {
-	/*if (!Map)
+	if (!Map)
 		return;
 
 	for (int y = 0; y < MapSize; y++) 
 	{
-		if (removeObjects)
+		for (int x = 0; x < MapSize; x++)
 		{
-			for (int x = 0; x < MapSize; x++)
-			{
-				auto obj = Map[y][x];
-				if (obj)
-					obj->Destroy();
-			}
+			auto obj = Map[y][x];
+			if (obj)
+				obj->Destroy();
 		}
 		delete[] Map[y];
 	}
 	delete Map;
 
-	Map = nullptr;*/
+	Map = nullptr;
 }
 
+void AUnrealBomberGameModeBase::RestartGame()
+{
+	UE_LOG(LogTemp, Display, TEXT("Game restart"));
+	LaunchGame();
+}
 
 void AUnrealBomberGameModeBase::SpawnWall(TSubclassOf<AWallBase> wall, int x, int y)
 {

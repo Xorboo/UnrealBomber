@@ -52,16 +52,20 @@ protected:
 	TSubclassOf<class AWallBase> DestroyableWall;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Generation", meta = (ClampMin = "0.0", ClampMax = "100.0", UIMin = "0.0", UIMax = "100.0"))
 	float WallSpawnChance;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Generation")
+	float RestartPause;
 
-	/** BP of the explosion */
+	/** Explosion */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	TSubclassOf<class AExplosiomBase> ExplosionVisuals;
 
 private:
 	/** Generation functions */
+	void LaunchGame();
 	void GenerateMap();
 	void DestroyMap();
 	void SpawnWall(TSubclassOf<class AWallBase> wall, int x, int y);
+	void RestartGame();
 
 	/** Destroying functions */
 	void ChainExplosions(struct BombExplosion Explosion);
@@ -72,4 +76,6 @@ private:
 
 	/** Current map data */
 	class AMapObjectBase*** Map;
+	/** All players */
+	TArray<AActor*> Players;
 };
