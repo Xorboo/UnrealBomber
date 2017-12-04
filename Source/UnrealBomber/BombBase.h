@@ -4,33 +4,36 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "MapObjectBase.generated.h"
+#include "MapObjectBase.h"
+#include "BombBase.generated.h"
 
 UCLASS()
-class UNREALBOMBER_API AMapObjectBase : public AActor
+class UNREALBOMBER_API ABombBase : public AMapObjectBase
 {
 	GENERATED_BODY()
 	
 public:	
 	// Sets default values for this actor's properties
-	AMapObjectBase();
+	ABombBase();
 
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "MapObject")
-	bool bIsDestroyable;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "MapObject")
-	bool bCanConsumesBlast;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Bomb")
+	int DefaultRadius;
+
+	UPROPERTY(BlueprintReadOnly)
+	int RealRadius;
+
 
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
-
+	
 	UFUNCTION(BlueprintCallable)
-	bool IsDestroyable();
+	void IncreaseBlastRadius(int Radius);
 	UFUNCTION(BlueprintCallable)
-	bool CanConsumeBlast();
-
+	int GetExplosionRadius() { return RealRadius; }
+	
 };

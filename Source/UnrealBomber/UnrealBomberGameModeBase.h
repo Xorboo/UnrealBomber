@@ -21,10 +21,14 @@ public:
 	~AUnrealBomberGameModeBase();
 
 	virtual void BeginPlay() override;
-
+	
 	UFUNCTION(BlueprintCallable)
-	FVector RoundPositionToGrid(FVector position);
-
+	FVector RoundPositionToGrid(FVector Position);
+	UFUNCTION(BlueprintCallable)
+	void BombAdded(class ABombBase* Bomb);
+	UFUNCTION(BlueprintCallable, meta = (WorldContext = "WorldContextObject"))
+	void ExplodeBomb(UObject* WorldContextObject);
+	
 	
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Generation")
@@ -35,10 +39,16 @@ protected:
 	TSubclassOf<class AWallBase> DestroyableWall;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Generation", meta = (ClampMin = "0.0", ClampMax = "100.0", UIMin = "0.0", UIMax = "100.0"))
 	float WallSpawnChance;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	TSubclassOf<class AExplosiomBase> ExplosionVisuals;
 
 private:
 	void GenerateMap();
+	void DestroyMap();
 	void SpawnWall(TSubclassOf<class AWallBase> wall, int x, int y);
 
+	void ChainExplosions(struct BombExplosion Explosion);
+	bool CheckExplosion(int x, int y, TArray<class AMapObjectBase*>& destroyed, TArray<struct BombExplosion>& explosions, TArray<ABombBase*>& explodedBombs, TArray<FVector>& explodedPositions);
 
+	class AMapObjectBase*** Map;
 };

@@ -23,3 +23,8 @@ bool AMapObjectBase::IsDestroyable()
 {
 	return bIsDestroyable;
 }
+
+bool AMapObjectBase::CanConsumeBlast()
+{
+	return bCanConsumesBlast;
+}
