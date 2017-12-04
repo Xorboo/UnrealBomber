@@ -13,7 +13,6 @@ AUnrealBomberGameModeBase::AUnrealBomberGameModeBase()
 
 AUnrealBomberGameModeBase::~AUnrealBomberGameModeBase()
 {
-	UE_LOG(LogTemp, Display, TEXT("LOOOOOOL..."));
 }
 
 void AUnrealBomberGameModeBase::BeginPlay()
