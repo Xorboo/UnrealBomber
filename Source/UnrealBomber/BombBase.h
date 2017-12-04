@@ -23,7 +23,7 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Bomb")
 	int DefaultRadius;
 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, Category = "Bomb")
 	int RealRadius;
 
 
