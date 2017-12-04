@@ -1,5 +1,5 @@
 # UnrealBomber
-Bomberman demo on Unreal Engine 4
+Bomberman demo on Unreal Engine 4 (version 4.16.3).
 
 # To the reviewer
 ### Completed Tasks
@@ -42,6 +42,14 @@ Naming conventions are kinda weird in the assignment. I was jumping between conv
 * AI (from simple random-like to complex hunter-like)
 
 Probably should do it after i dive a bit into some other examples to get more information about best practices.
+
+# Playing
+### Controls
+WASD + Space
+### Pickups
+* **Blue**: extra speed
+* **Green**: +1 extra bomb
+* **Red**: +1 blast radius
 
 # Points of interest
 * **UnrealBomberGameModeBase** c++ class: all the core logic - explosions, generation, game state "managing"
