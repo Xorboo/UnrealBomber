@@ -82,6 +82,7 @@ void AUnrealBomberGameModeBase::ChainExplosions(BombExplosion Explosion)
 
 	explosions.Add(Explosion);
 	destroyed.Add(Explosion.Bomb);
+	explodedPositions.Add(FVector(Explosion.X, Explosion.Y, 0));
 
 	while (explosions.Num() > 0)
 	{
@@ -91,6 +92,7 @@ void AUnrealBomberGameModeBase::ChainExplosions(BombExplosion Explosion)
 
 		int x = explosion.X;
 		int y = explosion.Y;
+		Map[y][x] = nullptr;
 
 		for (int sX = x + 1; sX < FMath::Min(x + bomb->GetExplosionRadius(), MapSize); sX++)
 		{
@@ -98,7 +100,7 @@ void AUnrealBomberGameModeBase::ChainExplosions(BombExplosion Explosion)
 			if (shouldStop)
 				break;
 		}
-		for (int sX = x - 1; sX > FMath::Max(x - bomb->GetExplosionRadius(), 0); sX--)
+		for (int sX = x - 1; sX >= FMath::Max(x - bomb->GetExplosionRadius(), 0); sX--)
 		{
 			bool shouldStop = CheckExplosion(sX, y, destroyed, explosions, explodedBombs, explodedPositions);
 			if (shouldStop)
@@ -110,7 +112,7 @@ void AUnrealBomberGameModeBase::ChainExplosions(BombExplosion Explosion)
 			if (shouldStop)
 				break;
 		}
-		for (int sY = x - 1; sY > FMath::Max(y - bomb->GetExplosionRadius(), 0); sY--)
+		for (int sY = y - 1; sY >= FMath::Max(y - bomb->GetExplosionRadius(), 0); sY--)
 		{
 			bool shouldStop = CheckExplosion(x, sY, destroyed, explosions, explodedBombs, explodedPositions);
 			if (shouldStop)
@@ -128,29 +130,30 @@ void AUnrealBomberGameModeBase::ChainExplosions(BombExplosion Explosion)
 	auto world = GetWorld();
 	for (auto iter(explodedPositions.CreateIterator()); iter; iter++)
 	{
-		auto position = *iter;
+		auto position = (*iter) * 100.0;
 		auto explosionBase = ExplosionVisuals;
 
-		auto explosion = world->SpawnActor<AExplosiomBase>(ExplosionVisuals, position, FRotator::ZeroRotator);
+		world->SpawnActor<AExplosiomBase>(ExplosionVisuals, position, FRotator::ZeroRotator);
 	}
 }
 
 bool AUnrealBomberGameModeBase::CheckExplosion(int x, int y, TArray<AMapObjectBase*>& destroyed, TArray<BombExplosion>& explosions, TArray<ABombBase*>& explodedBombs, TArray<FVector>& explodedPositions)
 {
-	FVector explosionPosition = FVector(x * 100, y * 100, 0);
+	FVector explosionPosition = FVector(x, y, 0);
 
 	auto obj = Map[y][x];
-	if (!obj) 
+	if (!obj)
 	{
-		//UE_LOG(LogTemp, Display, TEXT("[%d, %d] - no object"), x, y);
+		UE_LOG(LogTemp, Display, TEXT("[%d, %d] - no object"), x, y);
 		if (!explodedPositions.Contains(explosionPosition))
 			explodedPositions.Add(explosionPosition);
+
 		return false;
 	}
 
 	if (!obj->IsDestroyable())
 	{
-		//UE_LOG(LogTemp, Display, TEXT("[%d, %d] - static, %s"), x, y, *GetNameSafe(obj));
+		UE_LOG(LogTemp, Display, TEXT("[%d, %d] - static, %s"), x, y, *GetNameSafe(obj));
 		return true;
 	}
 
@@ -159,12 +162,16 @@ bool AUnrealBomberGameModeBase::CheckExplosion(int x, int y, TArray<AMapObjectBa
 
 	auto bomb = Cast<ABombBase>(obj);
 	if (bomb && !explodedBombs.Contains(bomb))
+	{
+		UE_LOG(LogTemp, Display, TEXT("[%d, %d] - bomb - adding it to queue"), x, y);
 		explosions.Add(BombExplosion{ bomb, x, y });
+	}
 
 	destroyed.Add(obj);
+	Map[y][x] = nullptr;
 
 	bool stopBlast = obj->CanConsumeBlast();
-	//UE_LOG(LogTemp, Display, TEXT("[%d, %d] - destroyable, %s - consume blast: %s"), x, y, *GetNameSafe(obj), stopBlast ? TEXT("TRUE") : TEXT("FALSE"));
+	UE_LOG(LogTemp, Display, TEXT("[%d, %d] - destroyable, %s - consume blast: %s"), x, y, *GetNameSafe(obj), stopBlast ? TEXT("TRUE") : TEXT("FALSE"));
 	return stopBlast;
 }
 
