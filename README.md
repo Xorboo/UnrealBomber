@@ -1,6 +1,6 @@
 # UnrealBomber
 Bomberman demo on Unreal Engine 4 (version 4.16.3).
-Playable version [here](xorboo.com/games/unreal-bomber/) (with broken texture on floor plane for some reason).
+Playable version [here](http://xorboo.com/games/unreal-bomber/) (with broken texture on floor plane for some reason).
 
 # To the reviewer
 ### Completed Tasks
