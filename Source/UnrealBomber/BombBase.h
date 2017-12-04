@@ -17,9 +17,6 @@ public:
 	ABombBase();
 
 protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
-
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Bomb")
 	int DefaultRadius;
 
@@ -27,10 +24,7 @@ protected:
 	int RealRadius;
 
 
-public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
-	
+public:
 	UFUNCTION(BlueprintCallable)
 	void IncreaseBlastRadius(int Radius);
 	UFUNCTION(BlueprintCallable)

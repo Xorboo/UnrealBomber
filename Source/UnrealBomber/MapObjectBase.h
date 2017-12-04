@@ -12,22 +12,18 @@ class UNREALBOMBER_API AMapObjectBase : public AActor
 	GENERATED_BODY()
 	
 public:	
-	// Sets default values for this actor's properties
 	AMapObjectBase();
 
 protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
-	
+	/** If an object will be destroyed by bomb explosion */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "MapObject")
 	bool bIsDestroyable;
+
+	/** If an object will stop the explosion from spreading */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "MapObject")
 	bool bCanConsumesBlast;
 
 public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
-
 	UFUNCTION(BlueprintCallable)
 	bool IsDestroyable();
 	UFUNCTION(BlueprintCallable)

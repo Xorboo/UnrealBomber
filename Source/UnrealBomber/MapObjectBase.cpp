@@ -8,17 +8,6 @@ AMapObjectBase::AMapObjectBase()
 	PrimaryActorTick.bCanEverTick = true;
 }
 
-void AMapObjectBase::BeginPlay()
-{
-	Super::BeginPlay();
-}
-
-void AMapObjectBase::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-}
-
-
 bool AMapObjectBase::IsDestroyable()
 {
 	return bIsDestroyable;

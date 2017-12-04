@@ -5,6 +5,7 @@
 #include "WallBase.h"
 #include "MapObjectBase.h"
 #include "BombBase.h"
+#include "PickupBase.h"
 #include "ExplosiomBase.h"
 
 
@@ -24,7 +25,7 @@ AUnrealBomberGameModeBase::AUnrealBomberGameModeBase()
 
 AUnrealBomberGameModeBase::~AUnrealBomberGameModeBase()
 {
-	DestroyMap();
+	//DestroyMap();
 }
 
 void AUnrealBomberGameModeBase::BeginPlay()
@@ -43,18 +44,71 @@ FVector AUnrealBomberGameModeBase::RoundPositionToGrid(FVector Position)
 
 void AUnrealBomberGameModeBase::BombAdded(ABombBase* Bomb)
 {
-	auto pos = Bomb->GetActorLocation();
-	int x = FMath::RoundToInt(pos.X / 100.0);
-	int y = FMath::RoundToInt(pos.Y / 100.0);
+	int x = 0, y = 0;
+	PositionToCoordinate(Bomb->GetActorLocation(), x, y);
 
-	UE_LOG(LogTemp, Display, TEXT("Bomb added on %d, %d."), x, y);
-
-	if (!Map[y][x])
+	if (IsFreeTileCoords(x, y))
 	{
+		UE_LOG(LogTemp, Display, TEXT("Bomb added on %d, %d."), x, y);
 		Map[y][x] = Bomb;
 	}
 	else
-		UE_LOG(LogTemp, Error, TEXT("Bomb spawned on already taken coordinates"));
+	{
+		UE_LOG(LogTemp, Error, TEXT("Bomb spawned on already taken coordinates [%d, %d], killing it"), x, y);
+		Bomb->Destroy();
+	}
+}
+
+
+void AUnrealBomberGameModeBase::PickupAdded(APickupBase* Pickup)
+{
+	int x = 0, y = 0;
+	PositionToCoordinate(Pickup->GetActorLocation(), x, y);
+
+	if (IsFreeTileCoords(x, y))
+	{
+		UE_LOG(LogTemp, Display, TEXT("Pickup added on %d, %d."), x, y);
+		Map[y][x] = Pickup;
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("Pickup spawned on already taken coordinates [%d, %d], killing it"), x, y);
+		Pickup->Destroy();
+	}
+}
+
+
+void AUnrealBomberGameModeBase::PickupCollected(UObject* WorldContextObject)
+{
+	auto pickup = Cast<APickupBase>(WorldContextObject);
+	if (pickup)
+	{
+		int x, y;
+		PositionToCoordinate(pickup->GetActorLocation(), x, y);
+		UE_LOG(LogTemp, Display, TEXT("Pickup on [%d, %d] collected"), x, y);
+
+		if (Map[y][x] == pickup)
+		{
+			Map[y][x] = nullptr;
+			pickup->Destroy();
+		}
+		else
+			UE_LOG(LogTemp, Error, TEXT("There is another object on pickup position"));
+	}
+	else
+		UE_LOG(LogTemp, Error, TEXT("Cant cast pickup from world object"));
+}
+
+bool AUnrealBomberGameModeBase::IsFreeTile(FVector Position)
+{
+	int x = 0, y = 0;
+	PositionToCoordinate(Position, x, y);
+	return IsFreeTileCoords(x, y);
+}
+
+bool AUnrealBomberGameModeBase::IsFreeTileCoords(const int X, const int Y)
+{
+	return Map[Y][X] == nullptr;
 }
 
 void AUnrealBomberGameModeBase::ExplodeBomb(UObject* WorldContextObject)
@@ -62,11 +116,10 @@ void AUnrealBomberGameModeBase::ExplodeBomb(UObject* WorldContextObject)
 	auto bomb = Cast<ABombBase>(WorldContextObject);
 	if (bomb)
 	{
-		auto pos = bomb->GetActorLocation();
-		int bombX = FMath::RoundToInt(pos.X / 100.0);
-		int bombY = FMath::RoundToInt(pos.Y / 100.0);
-		UE_LOG(LogTemp, Display, TEXT("Bomb on %d, %d exploded"), bombX, bombY);
-		BombExplosion explosion{ bomb, bombX, bombY };
+		int x, y;
+		PositionToCoordinate(bomb->GetActorLocation(), x, y);
+		UE_LOG(LogTemp, Display, TEXT("Bomb on [%d, %d] exploded"), x, y);
+		BombExplosion explosion{ bomb, x, y };
 		ChainExplosions(explosion);
 	}
 	else
@@ -84,6 +137,7 @@ void AUnrealBomberGameModeBase::ChainExplosions(BombExplosion Explosion)
 	destroyed.Add(Explosion.Bomb);
 	explodedPositions.Add(FVector(Explosion.X, Explosion.Y, 0));
 
+	// Explode chain of bombs
 	while (explosions.Num() > 0)
 	{
 		auto explosion = explosions.Pop();
@@ -94,6 +148,8 @@ void AUnrealBomberGameModeBase::ChainExplosions(BombExplosion Explosion)
 		int y = explosion.Y;
 		Map[y][x] = nullptr;
 
+		// Check adjacent tiles of that bomb
+		// We need separate loops so we can stop each of them when colliding with static tile
 		for (int sX = x + 1; sX < FMath::Min(x + bomb->GetExplosionRadius(), MapSize); sX++)
 		{
 			bool shouldStop = CheckExplosion(sX, y, destroyed, explosions, explodedBombs, explodedPositions);
@@ -120,13 +176,20 @@ void AUnrealBomberGameModeBase::ChainExplosions(BombExplosion Explosion)
 		}
 	}
 
+	// Destroy objects
 	for (auto iter(destroyed.CreateIterator()); iter; iter++)
 	{
 		auto obj = *iter;
 		//UE_LOG(LogTemp, Display, TEXT("Destroyed object: %s"), *GetNameSafe(obj));
+		if (obj->IsA(AWallBase::StaticClass()))
+		{
+			FOutputDeviceNull ar;
+			obj->CallFunctionByNameWithArguments(TEXT("OnPreDestroy"), ar, nullptr, true);
+		}
 		obj->Destroy();
 	}
 
+	// Spawn explosion particles
 	auto world = GetWorld();
 	for (auto iter(explodedPositions.CreateIterator()); iter; iter++)
 	{
@@ -144,7 +207,7 @@ bool AUnrealBomberGameModeBase::CheckExplosion(int x, int y, TArray<AMapObjectBa
 	auto obj = Map[y][x];
 	if (!obj)
 	{
-		UE_LOG(LogTemp, Display, TEXT("[%d, %d] - no object"), x, y);
+		//UE_LOG(LogTemp, Display, TEXT("[%d, %d] - no object"), x, y);
 		if (!explodedPositions.Contains(explosionPosition))
 			explodedPositions.Add(explosionPosition);
 
@@ -153,7 +216,7 @@ bool AUnrealBomberGameModeBase::CheckExplosion(int x, int y, TArray<AMapObjectBa
 
 	if (!obj->IsDestroyable())
 	{
-		UE_LOG(LogTemp, Display, TEXT("[%d, %d] - static, %s"), x, y, *GetNameSafe(obj));
+		//UE_LOG(LogTemp, Display, TEXT("[%d, %d] - static, %s"), x, y, *GetNameSafe(obj));
 		return true;
 	}
 
@@ -163,7 +226,7 @@ bool AUnrealBomberGameModeBase::CheckExplosion(int x, int y, TArray<AMapObjectBa
 	auto bomb = Cast<ABombBase>(obj);
 	if (bomb && !explodedBombs.Contains(bomb))
 	{
-		UE_LOG(LogTemp, Display, TEXT("[%d, %d] - bomb - adding it to queue"), x, y);
+		//UE_LOG(LogTemp, Display, TEXT("[%d, %d] - bomb - adding it to queue"), x, y);
 		explosions.Add(BombExplosion{ bomb, x, y });
 	}
 
@@ -171,9 +234,10 @@ bool AUnrealBomberGameModeBase::CheckExplosion(int x, int y, TArray<AMapObjectBa
 	Map[y][x] = nullptr;
 
 	bool stopBlast = obj->CanConsumeBlast();
-	UE_LOG(LogTemp, Display, TEXT("[%d, %d] - destroyable, %s - consume blast: %s"), x, y, *GetNameSafe(obj), stopBlast ? TEXT("TRUE") : TEXT("FALSE"));
+	//UE_LOG(LogTemp, Display, TEXT("[%d, %d] - destroyable, %s - consume blast: %s"), x, y, *GetNameSafe(obj), stopBlast ? TEXT("TRUE") : TEXT("FALSE"));
 	return stopBlast;
 }
+
 
 void AUnrealBomberGameModeBase::GenerateMap()
 {
@@ -226,16 +290,25 @@ void AUnrealBomberGameModeBase::GenerateMap()
 
 void AUnrealBomberGameModeBase::DestroyMap()
 {
-	if (!Map)
+	/*if (!Map)
 		return;
 
 	for (int y = 0; y < MapSize; y++) 
 	{
+		if (removeObjects)
+		{
+			for (int x = 0; x < MapSize; x++)
+			{
+				auto obj = Map[y][x];
+				if (obj)
+					obj->Destroy();
+			}
+		}
 		delete[] Map[y];
 	}
 	delete Map;
 
-	Map = nullptr;
+	Map = nullptr;*/
 }
 
 
@@ -250,4 +323,10 @@ void AUnrealBomberGameModeBase::SpawnWall(TSubclassOf<AWallBase> wall, int x, in
 	}
 	else
 		UE_LOG(LogTemp, Error, TEXT("No World found"));
+}
+
+void AUnrealBomberGameModeBase::PositionToCoordinate(const FVector& Position, int& X, int &Y)
+{
+	X = FMath::RoundToInt(Position.X / 100.0);
+	Y = FMath::RoundToInt(Position.Y / 100.0);
 }
