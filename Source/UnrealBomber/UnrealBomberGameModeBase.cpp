@@ -318,9 +318,10 @@ void AUnrealBomberGameModeBase::LaunchGame()
 		FVector position(size * index, size * index, 0.0);
 		FVector shift(100.0, 100.0, 50.0);
 		player->SetActorLocation(position + shift);
+		UE_LOG(LogTemp, Display, TEXT("Actor %d on position %s"), index, *(position + shift).ToString());
 
 		FOutputDeviceNull ar;
-		player->CallFunctionByNameWithArguments(TEXT("OnNeMatchStarted"), ar, nullptr, true);
+		player->CallFunctionByNameWithArguments(TEXT("OnNewMatchStarted"), ar, nullptr, true);
 
 		index++;
 	}
