@@ -36,11 +36,25 @@ void AUnrealBomberGameModeBase::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// Store all players
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), APlayerPawnBase::StaticClass(), Players);
+	SpawnPlayersIfNeeded();
+
 	// Generate level
 	LaunchGame();
 }
+
+
+void AUnrealBomberGameModeBase::SpawnPlayersIfNeeded()
+{
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), APlayerPawnBase::StaticClass(), Players);
+
+	for(int i = Players.Num(); i < 2; i++)
+	{
+		auto actor = UGameplayStatics::CreatePlayer(GetWorld());
+	}
+
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), APlayerPawnBase::StaticClass(), Players);
+}
+
 
 FVector AUnrealBomberGameModeBase::RoundPositionToGrid(FVector Position)
 {
@@ -162,7 +176,7 @@ void AUnrealBomberGameModeBase::ChainExplosions(BombExplosion Explosion)
 
 		// Check adjacent tiles of that bomb
 		// We need separate loops so we can stop each of them when colliding with static tile
-		for (int sX = x + 1; sX < FMath::Min(x + bomb->GetExplosionRadius(), MapSize); sX++)
+		for (int sX = x + 1; sX <= FMath::Min(x + bomb->GetExplosionRadius(), MapSize); sX++)
 		{
 			bool shouldStop = CheckExplosion(sX, y, destroyed, explosions, explodedBombs, explodedPositions);
 			if (shouldStop)
@@ -174,7 +188,7 @@ void AUnrealBomberGameModeBase::ChainExplosions(BombExplosion Explosion)
 			if (shouldStop)
 				break;
 		}
-		for (int sY = y + 1; sY < FMath::Min(y + bomb->GetExplosionRadius(), MapSize); sY++)
+		for (int sY = y + 1; sY <= FMath::Min(y + bomb->GetExplosionRadius(), MapSize); sY++)
 		{
 			bool shouldStop = CheckExplosion(x, sY, destroyed, explosions, explodedBombs, explodedPositions);
 			if (shouldStop)
@@ -291,12 +305,24 @@ void AUnrealBomberGameModeBase::LaunchGame()
 {
 	GenerateMap();
 
+	int index = 0;
 	for (auto iter(Players.CreateIterator()); iter; iter++)
 	{
 		auto player = *iter;
 
+		/** Update player position
+		  * This will work only for 2 players
+		  * For more players we should probably store/calculate positions for each index
+		 */
+		float size = (MapSize - 3) * 100.0;
+		FVector position(size * index, size * index, 0.0);
+		FVector shift(100.0, 100.0, 50.0);
+		player->SetActorLocation(position + shift);
+
 		FOutputDeviceNull ar;
 		player->CallFunctionByNameWithArguments(TEXT("OnNeMatchStarted"), ar, nullptr, true);
+
+		index++;
 	}
 }
 
@@ -383,6 +409,9 @@ void AUnrealBomberGameModeBase::SpawnWall(TSubclassOf<AWallBase> wall, int x, in
 		const FVector Position = FVector(x * 100, y * 100, 0);
 		auto spawnedWall = World->SpawnActor<AWallBase>(wall, Position, FRotator::ZeroRotator);
 		Map[y][x] = spawnedWall;
+#if WITH_EDITOR
+		spawnedWall->SetFolderPath("Level");
+#endif
 	}
 	else
 		UE_LOG(LogTemp, Error, TEXT("No World found"));

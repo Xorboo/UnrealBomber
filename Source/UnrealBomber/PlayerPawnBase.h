@@ -14,10 +14,28 @@ class UNREALBOMBER_API APlayerPawnBase : public APawn
 public:
 	APlayerPawnBase();
 
-public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-	
-	
+
+	UPROPERTY(BlueprintReadOnly, Category = "Controls")
+	float MoveForwardAmount;
+	UPROPERTY(BlueprintReadOnly, Category = "Controls")
+	float MoveRightAmount;
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void BombPlantPressed();
+
+protected:
+
+
+private:
+	static const FString MoveForwardBinding;
+	static const FString MoveRightBinding;
+	static const FString FireBinding;
+	static const FString BindAppendBase;
+
+
+	void MoveForward(float Amount);
+	void MoveRight(float Amount);
 };

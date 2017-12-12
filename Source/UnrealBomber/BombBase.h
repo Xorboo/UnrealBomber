@@ -26,7 +26,7 @@ protected:
 
 public:
 	UFUNCTION(BlueprintCallable)
-	void IncreaseBlastRadius(int Radius);
+	void SetBlastRadius(int Radius);
 	UFUNCTION(BlueprintCallable)
 	int GetExplosionRadius() { return RealRadius; }
 	

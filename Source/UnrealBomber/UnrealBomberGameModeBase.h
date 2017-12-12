@@ -21,7 +21,8 @@ public:
 	~AUnrealBomberGameModeBase();
 
 	virtual void BeginPlay() override;
-	
+
+
 	/** Events called when new object is spawned */
 	UFUNCTION(BlueprintCallable)
 	void BombAdded(class ABombBase* Bomb);
@@ -78,4 +79,6 @@ private:
 	class AMapObjectBase*** Map;
 	/** All players */
 	TArray<AActor*> Players;
+
+	void SpawnPlayersIfNeeded();
 };

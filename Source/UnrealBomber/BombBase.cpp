@@ -6,12 +6,12 @@
 ABombBase::ABombBase()
 {
 	PrimaryActorTick.bCanEverTick = true;
-	DefaultRadius = 3;
+	DefaultRadius = 1;
 	RealRadius = DefaultRadius;
 }
 
 
-void ABombBase::IncreaseBlastRadius(int Radius)
+void ABombBase::SetBlastRadius(int Radius)
 {
-	RealRadius += Radius;
+	RealRadius = DefaultRadius + Radius;
 }
